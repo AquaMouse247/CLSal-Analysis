@@ -90,10 +90,11 @@ def load_model(algorithm, dataset, ses, shapArgs):
 
         # Update the model architecture to match the task
         if ses > 0:
-            for i in range(load_start_sess, ses + 1):
-                model.update_fc(alg_args['increment'] * (i + 1))
+            model.update_fc(shapArgs.dataset_params.init_cls * (load_start_sess + 1))
+            for i in range(load_start_sess+1, ses + 1):
+                model.update_fc(shapArgs.dataset_params.class_per_task * (i + 1))
         else:
-            model.update_fc(alg_args['increment'] * (ses + 1))
+            model.update_fc(shapArgs.dataset_params.init_cls * (ses + 1))
     else:
         match algorithm:
             case "iTAML":

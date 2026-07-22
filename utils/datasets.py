@@ -14,7 +14,13 @@ def get_dataset_params(dataset):
 class SHAPDataset:
     class_per_task = 2
     num_class = 10
+    num_task = 5
     shap_samples = 100
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if "init_cls" not in cls.__dict__:
+            cls.init_cls = cls.class_per_task
 
 
 class SHAPCifar10(SHAPDataset):
