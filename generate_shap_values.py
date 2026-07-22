@@ -66,9 +66,11 @@ for i in range(num_tasks):
     elif dataset == "imagenet200":
         sal_imgs, sal_labels, _, STD, MEAN = sal_dataloader.load_data(range(i * 20, (i * 20) + 20), 20, batch_size=10000)
     else:
+        ###---Updated to ensure correct number of samples are received from the correct classes---###
         sal_imgs, sal_labels, _, STD, MEAN = sal_dataloader.load_data(range(i*shapArgs.dataset_params.class_per_task,
                                                                        (i*shapArgs.dataset_params.class_per_task)+shapArgs.dataset_params.class_per_task),
                                                                       shapArgs.dataset_params.shap_samples, batch_size=10000)
+        ###---------------------------------------------------------------------------------------###
     print("Len of sal_imgs:", len(sal_imgs))
     if i == 0:
         test_imgs, test_labels = sal_imgs, sal_labels

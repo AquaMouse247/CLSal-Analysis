@@ -88,13 +88,17 @@ def load_model(algorithm, dataset, ses, shapArgs):
             case "tagfex":
                 model = TagFexNet(alg_args, False)
 
+        ###---Changes made to allow for non-uniform task class sizes and---###
+        ###---correct dataset parameter------------------------------------###
         # Update the model architecture to match the task
         if ses > 0:
             model.update_fc(shapArgs.dataset_params.init_cls * (load_start_sess + 1))
             for i in range(load_start_sess+1, ses + 1):
+                # I forgot to update to the dataset parameter before
                 model.update_fc(shapArgs.dataset_params.class_per_task * (i + 1))
         else:
             model.update_fc(shapArgs.dataset_params.init_cls * (ses + 1))
+        ###----------------------------------------------------------------###
     else:
         match algorithm:
             case "iTAML":

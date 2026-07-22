@@ -17,11 +17,12 @@ class SHAPDataset:
     num_task = 5
     shap_samples = 100
 
+    ###---Change made to allow for non-uniform task class sizes---###
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if "init_cls" not in cls.__dict__:
             cls.init_cls = cls.class_per_task
-
+    ###-----------------------------------------------------------###
 
 class SHAPCifar10(SHAPDataset):
     class_per_task = 2
