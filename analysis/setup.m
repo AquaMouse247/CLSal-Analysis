@@ -1,8 +1,16 @@
 % Setup file
 algs = ["iTAML", "RPSnet", "foster", "memo", "der", "icarl", "dsal", "tagfex", "xder"];
 
-% Dataset configs
+%% Dataset configs
 dataset_configs = {};
+
+% Example config:
+% dataset_configs.dataset_name = struct('num_sessions', 5, 'num_classes', 10, 'cls_per_task', 2, 'samples_per_cls', 100);
+% * num_sessions - total number of sessions/tasks the dataset was split into
+% * num_classes - total number of classes in the dataset
+% * cls_per_task - number of classes learned per session/task
+% * samples_per_cls - number of samples iterated through per class during SHAP value calculation (equivalent to shap_samples)
+
 dataset_configs.cifar10 = struct('num_sessions', 5, 'num_classes', 10, 'cls_per_task', 2, 'samples_per_cls', 100);
 dataset_configs.cifar100 = struct('num_sessions', 10, 'num_classes', 100', 'cls_per_task', 10, 'samples_per_cls', 20);
 dataset_configs.imagenet200 = struct('num_sessions', 10, 'num_classes', 200', 'cls_per_task', 20, 'samples_per_cls', 20);
