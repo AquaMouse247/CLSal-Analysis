@@ -198,7 +198,7 @@ You should receive a `shapc_values_first_last_[samples_number].mat` file in `ana
 ### Experiment 3
 **Requires Experiment 2 to be completed for the desired algorithm and dataset.**
 
-Use the `generate_shapc_mean_values.mlx` script.
+Use the `generate_shapc_mean_values.m` script.
 
 You should see the SHAPC-Mean value output in the console.
 ***
