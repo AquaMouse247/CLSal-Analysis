@@ -35,3 +35,6 @@ def create_shapc_savepath(shapArgs, first_last_only=True, all_samples=False):
         return f"{shap_value_filepath_root}{shapArgs.algorithm}/{shapArgs.dataset_name}/shapc_vals_first_last_{total_samples}.mat"
     else:
         return f"{shap_value_filepath_root}{shapArgs.algorithm}/{shapArgs.dataset_name}/shapc_vals_full_{total_samples}.mat"
+
+def create_preds_savepath(shapArgs):
+    return f"{shap_value_filepath_root}/preds/{shapArgs.algorithm}_{shapArgs.dataset_name}_preds.mat"

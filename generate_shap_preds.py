@@ -5,7 +5,7 @@ import os
 import torch
 
 # Custom Imports
-from utils.setup_args import SHAPArgs, create_shap_value_filepath
+from utils.setup_args import SHAPArgs, create_shap_value_filepath, create_preds_savepath
 from utils.load_models import load_model, load_meta_models, generate_predictions
 from utils.model_parameters import pycil_algs
 
@@ -22,10 +22,13 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
 first_last_only = True
-filepath = create_shap_value_filepath(shapArgs, first_last_only)
+filepath = create_shap_value_filepath(shapArgs, first_last_only) + ".npy"
+preds_savepath = create_preds_savepath(shapArgs)
 
 num_tasks = shapArgs.dataset_params.num_task
+num_class = shapArgs.dataset_params.num_class
 cls_per_task = shapArgs.dataset_params.class_per_task
+shap_samples = shapArgs.dataset_params.shap_samples
 
 
 shap_values_loaded = np.load(filepath, allow_pickle=True)  # ['shap_dict']
@@ -34,7 +37,35 @@ shap_dict = {}
 for i in range(num_imgs):
     shap_dict[f'{i}'] = shap_values_loaded[()][f'{i}']
 
-samples = range(shapArgs.dataset_params.shap_samples*cls_per_task*(num_tasks-1))
+# Get test dataset
+sal_dataloader = sdl.ShapDataloader(shapArgs)
+# Get test dataset
+for i in range(num_tasks):
+    if dataset == "cifar100":
+        sal_imgs, sal_labels, _, STD, MEAN = sal_dataloader.load_data(range(i * 10, (i * 10) + 10), 20, batch_size=10000)
+    elif dataset == "imagenet200":
+        sal_imgs, sal_labels, _, STD, MEAN = sal_dataloader.load_data(range(i * 20, (i * 20) + 20), 20, batch_size=10000)
+    else:
+        ###---Updated to take initial classes learned into account---###
+        if i == 0:
+            sal_imgs, sal_labels, _, STD, MEAN = sal_dataloader.load_data(range(shapArgs.dataset_params.init_cls),
+                                                                          shapArgs.dataset_params.shap_samples, batch_size=10000)
+        else:
+            sal_imgs, sal_labels, _, STD, MEAN = sal_dataloader.load_data(range((shapArgs.dataset_params.init_cls-cls_per_task)+i*cls_per_task,
+                                                                            shapArgs.dataset_params.init_cls+(i*cls_per_task)),
+                                                                            shapArgs.dataset_params.shap_samples, batch_size=10000)
+        ###----------------------------------------------------------###
+    print("Len of sal_imgs:", len(sal_imgs))
+    if i == 0:
+        test_imgs, test_labels = sal_imgs, sal_labels
+    else:
+        test_imgs = torch.cat((test_imgs, sal_imgs), 0)
+        test_labels = torch.cat((test_labels, sal_labels), 0)
+
+#print("Len of sal_imgs:", len(test_imgs))
+test_imgs, test_labels = test_imgs.to(device), test_labels.to(device)
+
+samples = range(shap_samples*(num_class-cls_per_task))
 
 for sample in samples:
     test_sample = shap_dict[f'{sample}']
@@ -43,27 +74,11 @@ for sample in samples:
     #print(test_sess)
     ses = int(test_sess[0][-1])
 
-    # Get test dataset
-    sal_dataloader = sdl.ShapDataloader(shapArgs)
-    if dataset == "cifar100":
-        test_imgs, test_labels, _, STD, MEAN = sal_dataloader.load_data(range(ses * 10, (ses * 10) + 10), 20, batch_size=10000)
-    elif dataset == "imagenet200":
-        test_imgs, test_labels, _, STD, MEAN = sal_dataloader.load_data(range(ses * 20, (ses * 20) + 20), 20, batch_size=10000)
-    else:
-        test_imgs, test_labels, _, STD, MEAN = sal_dataloader.load_data([ses * 2, (ses * 2) + 1], 100, batch_size=10000)
-    #print("Len of sal_imgs:", len(test_imgs))
-    test_imgs, test_labels = test_imgs.to(device), test_labels.to(device)
-
-    if dataset == "cifar100":
-        sample_multiplier = 10 * 20
-    elif dataset == "imagenet200":
-        sample_multiplier = 20 * 20
-    else:
-        sample_multiplier = 2 * 100
+    #sample_multiplier = cls_per_task * shap_samples
 
     # Get test image
-    test_img = test_imgs[sample-(ses*sample_multiplier)].unsqueeze(0)
-    test_label = test_labels[sample-(ses*sample_multiplier)]
+    test_img = test_imgs[sample].unsqueeze(0)
+    test_label = test_labels[sample]
     models = [load_model(algorithm, dataset, i, shapArgs=shapArgs).to(device) for i in [int(test_sess[0][-1]),int(test_sess[-1][-1])]]
 
     # Generate predictions
@@ -86,12 +101,16 @@ for sample in samples:
     # Store predictions
 
     # Load the saved preds, if possible
-    if os.path.isfile(f"analysis/preds/{algorithm}_{dataset}_preds.mat"):
-        loaded_preds = scipy.io.loadmat(f"analysis/preds/{algorithm}_{dataset}_preds.mat", simplify_cells=True)
+    if os.path.isfile(preds_savepath):
+        loaded_preds = scipy.io.loadmat(preds_savepath, simplify_cells=True)
         keys_to_remove = ['__header__', '__version__', '__globals__']
         pred_dict = {key: value for key, value in loaded_preds.items() if key not in keys_to_remove}
     else:
         pred_dict = {}
+
+    # Fix ds-al name formatting for saving
+    if algorithm == "ds-al":
+        algorithm = "dsal"
 
     if f'{algorithm}' not in pred_dict: pred_dict[f'{algorithm}'] = {}
     if f'sample{sample}' not in pred_dict[f'{algorithm}']: pred_dict[f'{algorithm}'][f'sample{sample}'] = {}
@@ -99,4 +118,4 @@ for sample in samples:
     pred_dict[f'{algorithm}'][f'sample{sample}'][f'pred_{test_sess[-1]}'] = preds[1].item()
 
     # Save shap values to filepath
-    scipy.io.savemat(f"analysis/preds/{algorithm}_{dataset}_preds.mat", pred_dict)
+    scipy.io.savemat(preds_savepath, pred_dict)
