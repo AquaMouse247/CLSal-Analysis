@@ -142,6 +142,7 @@ if __name__ == "__main__":
 
         num_sessions = shapArgs.dataset_params.num_task
         cls_per_task = shapArgs.dataset_params.class_per_task
+        init_cls = shapArgs.dataset_params.init_cls
 
         first_last_only = True
         all_samples = False
@@ -159,7 +160,11 @@ if __name__ == "__main__":
         shapc_dict = {}
         for sample in tqdm(range(num_imgs), desc="Progress"):
 
-            start_sess = shap_dict[f'{sample}']['true_label'] // cls_per_task
+            if shap_dict[f'{sample}']['true_label'] < init_cls:
+                start_sess = 0
+            else:
+                start_sess = ((shap_dict[f'{sample}']['true_label'] - init_cls) // cls_per_task) + 1
+
             # If the sample is from the last task skip
             if start_sess >= num_sessions-1: continue
 
