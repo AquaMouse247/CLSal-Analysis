@@ -117,5 +117,11 @@ for sample in samples:
     pred_dict[f'{algorithm}'][f'sample{sample}'][f'pred_{test_sess[0]}'] = preds[0].item()
     pred_dict[f'{algorithm}'][f'sample{sample}'][f'pred_{test_sess[-1]}'] = preds[1].item()
 
+    # Debugging
+    print(f'Contents of Pred Dict:\n{pred_dict}')
+    print(f'Contents of Pred Dict Algorithm:\n{pred_dict[f'{algorithm}']}')
+    print(f'Contents of First Sample of Pred Dict:\n{pred_dict[f'{algorithm}'][f'sample{sample}']}')
+
+
     # Save shap values to filepath
     scipy.io.savemat(preds_savepath, pred_dict)
