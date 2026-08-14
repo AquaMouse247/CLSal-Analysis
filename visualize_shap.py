@@ -9,8 +9,8 @@ import utils.shap_dataloader as sdl
 
 
 # Select Algorithm and Dataset
-algorithm = "der"
-dataset = "cifar100"
+algorithm = "memo"
+dataset = "cifar10"
 shapArgs = SHAPArgs(algorithm, dataset)
 
 
@@ -37,7 +37,7 @@ Good Sample: 132
 Samples to Try: 55
 '''
 
-sample = 703
+sample = 303
 test_sample = shap_dict[f'{sample}']
 test_sess = list(test_sample.keys())
 test_sess.remove(test_sess[1])
@@ -94,10 +94,41 @@ if dataset != "mnist":
 test_img_np = np.transpose(test_img.numpy(), [1, 2, 0])
 
 labels = [f'ses{ses}', f'ses{num_tasks-1}']
-shap.image_plot(np.concatenate(test_shaps), np.stack([test_img_np,test_img_np]), true_labels=labels)
+#shap.image_plot(np.concatenate(test_shaps), np.stack([test_img_np,test_img_np]), true_labels=labels, cmap='plasma')
 
 
 # For a model with high SHAPC, but low accuracy:
 # Look for a sample that was predicted correctly, feature consistency should be high
 # Look for a sample that was predicted incorrectly, but check if feature consistency is still high -> indicates trustworthiness
+import matplotlib.pyplot as plt
 
+plt_fig, plt_axis = plt.subplots(2, 2, figsize=(6, 6))
+for ax in plt_axis[:, 0]:
+    ax.imshow(test_img_np)
+    ax.set_title("Original Image")
+for ax in plt_axis[:, 1]:
+    ax.imshow(np.mean(test_img_np, axis=2), cmap="gray")
+
+s0 = np.sum(np.abs(test_shaps[0].squeeze()), axis=-1)
+s1 = np.sum(np.abs(test_shaps[1].squeeze()), axis=-1)
+
+# Normalize to [0, 1] across both or let imshow scale automatically
+vmax = max(s0.max(), s1.max())
+vmin = min(s0.min(), s1.min())
+
+hm1 = plt_axis[0, 1].imshow(s0, cmap='plasma', vmin=vmin, vmax=vmax, alpha=0.5)
+plt_axis[0, 1].set_title(labels[0])
+
+hm2 = plt_axis[1, 1].imshow(s1, cmap='plasma', vmin=vmin, vmax=vmax, alpha=0.5)
+plt_axis[1, 1].set_title(labels[1])
+
+for ax in plt_axis.flat:
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+cbar = plt_fig.colorbar(hm2, ax=plt_axis[:, 1], orientation='vertical', pad=0.04)
+cbar.ax.set_title("Most Important", pad=8)
+cbar.ax.set_xlabel("Least Important", labelpad=8)
+
+plt.subplots_adjust(right=0.82)
+plt.show()
